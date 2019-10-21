@@ -27,7 +27,10 @@ import (
 	"path"
 	"strings"
 	"sync"
+	"time"
 )
+
+const httpTimeOutSeconds = 10
 
 var dictFilename string
 var targetURL string
@@ -106,8 +109,12 @@ func main() {
 }
 
 func head(targetURL string) {
+	var netClient = &http.Client{
+		Timeout: time.Second * httpTimeOutSeconds,
+	}
+
 	// Check URL availability using HEAD to minimalize response size
-	res, err := http.Head(targetURL)
+	res, err := netClient.Head(targetURL)
 	if err != nil {
 		log.Println("error accessing url: " + err.Error())
 	} else {
