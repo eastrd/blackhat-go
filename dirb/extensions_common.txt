@@ -1,4 +1,6 @@
 
+/
+.txt
 .001
 .002
 .1
@@ -63,8 +65,6 @@
 .test
 .tgz
 .tmp
-.txt
 .war
 .xml
 .zip
-/
