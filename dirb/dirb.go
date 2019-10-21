@@ -6,7 +6,7 @@
 	- Scan Efficiency
 		- Threads
 	- Test Coverage
-		- File extension (TODO)
+		- File extension
 		- Recursive (TODO)
 	- Anonymization
 		- "Transparent Proxy" (TODO)
@@ -33,6 +33,7 @@ import (
 const httpTimeOutSeconds = 10
 
 var dictFilename string
+var extensionFilename string
 var targetURL string
 var numThreads int
 
@@ -45,11 +46,16 @@ func init() {
 	flag.StringVar(&dictFilename, "f", "", "Path to the wordlist")
 	flag.StringVar(&targetURL, "u", "", "Target URL")
 	flag.IntVar(&numThreads, "t", 1, "Number of concurrent requests per URL")
+	flag.StringVar(&extensionFilename, "e", "", "Path to a list of extensions")
 	flag.Parse()
 
 	if dictFilename == "" {
 		flag.PrintDefaults()
 		log.Fatal("Dictionary path not defined")
+	}
+	if extensionFilename == "" {
+		flag.PrintDefaults()
+		log.Fatal("Extension path not defined")
 	}
 	if targetURL == "" {
 		flag.PrintDefaults()
@@ -58,8 +64,8 @@ func init() {
 	if numThreads == 1 {
 		log.Println("Default to 1 thread")
 	} else {
-		if numThreads < 1 || numThreads > 10 {
-			log.Fatal("Invalid thread number, must be between 1 to 10")
+		if numThreads < 1 {
+			log.Fatal("Invalid thread number, must be bigger than 1")
 		}
 		log.Printf("Using %d threads\n", numThreads)
 	}
@@ -77,7 +83,13 @@ func init() {
 
 func main() {
 	// Open the dictionary and split words by line
-	b, err := ioutil.ReadFile(dictFilename)
+	dictB, err := ioutil.ReadFile(dictFilename)
+	if err != nil {
+		panic(err)
+	}
+
+	// Open the extension file and split extension by line
+	extB, err := ioutil.ReadFile(extensionFilename)
 	if err != nil {
 		panic(err)
 	}
@@ -88,22 +100,25 @@ func main() {
 	var wg sync.WaitGroup
 
 	// Loop through each line and attempt the url
-	words := strings.Split(string(b), "\n")
-	for _, word := range words {
-		// Build URL
-		u, _ := url.Parse(targetURL)
-		u.Path = path.Join(u.Path, word)
+	words := strings.Split(string(dictB), "\n")
+	exts := strings.Split(string(extB), "\n")
+	for _, ext := range exts {
+		log.Println("Test extension: " + ext)
+		for _, word := range words {
+			// Build URL
+			u, _ := url.Parse(targetURL)
+			u.Path = path.Join(u.Path, word+ext)
 
-		sem <- 1
-		wg.Add(1)
+			sem <- 1
+			wg.Add(1)
 
-		go func() {
-			head(u.String())
-			<-sem
-			wg.Done()
-		}()
+			go func() {
+				head(u.String())
+				<-sem
+				wg.Done()
+			}()
+		}
 	}
-
 	// Wait until the channel is empty
 	wg.Wait()
 }
@@ -120,7 +135,7 @@ func head(targetURL string) {
 	} else {
 		if res.StatusCode == 200 || res.StatusCode == 403 {
 			// Found a match
-			log.Println("Discovered: " + targetURL)
+			log.Printf("%s : %d\n", targetURL, res.StatusCode)
 		}
 	}
 }
