@@ -12,8 +12,8 @@
 		- "Transparent Proxy" (TODO)
 		- Wrappable network (TODO)
 	- Authentications
-		- HTTP Auth
-		- Cookie Auth
+		- HTTP Auth (TODO)
+		- Cookie Auth (TODO)
 */
 
 package main
