@@ -19,6 +19,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"flag"
 	"io/ioutil"
 	"log"
@@ -124,8 +125,13 @@ func main() {
 }
 
 func head(targetURL string) {
+	// Skip SSL validate failed error
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
 	var netClient = &http.Client{
-		Timeout: time.Second * httpTimeOutSeconds,
+		Timeout:   time.Second * httpTimeOutSeconds,
+		Transport: tr,
 	}
 
 	// Check URL availability using HEAD to minimalize response size
