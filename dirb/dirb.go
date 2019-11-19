@@ -37,6 +37,8 @@ var dictFilename string
 var extensionFilename string
 var targetURL string
 var numThreads int
+var headerString string
+var headers map[string]string
 
 func init() {
 	// Init logging module
@@ -48,6 +50,7 @@ func init() {
 	flag.StringVar(&targetURL, "u", "", "Target URL")
 	flag.IntVar(&numThreads, "t", 1, "Number of concurrent requests per URL")
 	flag.StringVar(&extensionFilename, "e", "", "Path to a list of extensions")
+	flag.StringVar(&headerString, "h", "", "Headers, with '|' as the delimeter (e.g. User-Agent : BLAH | Referer : AAAAA)")
 	flag.Parse()
 
 	if dictFilename == "" {
@@ -70,6 +73,17 @@ func init() {
 		}
 		log.Printf("Using %d threads\n", numThreads)
 	}
+
+	// Parse Headers into Dictionary
+	headers = make(map[string]string, 0)
+	for _, row := range strings.Split(headerString, "|") {
+		arr := strings.Split(row, ":")
+		key := strings.TrimSpace(arr[0])
+		val := strings.TrimSpace(arr[1])
+		headers[key] = val
+	}
+
+	log.Printf("Headers are set to: %+v\n", headers)
 
 	// Validate URL correctness
 	u, err := url.Parse(targetURL)
@@ -134,8 +148,17 @@ func head(targetURL string) {
 		Transport: tr,
 	}
 
+	req, _ := http.NewRequest("HEAD", targetURL, nil)
+
+	// Set request headers
+	// log.Printf("%+v\n", headers)
+	for key, val := range headers {
+		req.Header.Set(key, val)
+	}
+
 	// Check URL availability using HEAD to minimalize response size
-	res, err := netClient.Head(targetURL)
+	// res, err := netClient.Head(targetURL)
+	res, err := netClient.Do(req)
 	if err != nil {
 		log.Println("error accessing url: " + err.Error())
 	} else {
